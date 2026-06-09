@@ -1,11 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useExperimentReport } from "./useExperimentReport";
-
-/** Red→green tint for a 0..1 grade. */
-function gradeTint(grade: number): string {
-    const c = Math.max(0, Math.min(1, grade));
-    return `hsl(${c * 120} 65% 45% / 0.18)`;
-}
+import { gradeTint } from "./format";
 
 /**
  * The per-experiment headline grade, shown inline on the bench's Experiments

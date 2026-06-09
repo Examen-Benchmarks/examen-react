@@ -7,6 +7,7 @@ import ResourceListPage from "@/resources/ResourceListPage";
 import ResourceCreatePage from "@/resources/ResourceCreatePage";
 import ResourceDetailPage from "@/resources/ResourceDetailPage";
 import ExperimentView from "@/resources/report/ExperimentView";
+import CaseView from "@/resources/report/CaseView";
 import { navResources, detailResources } from "@/resources/registry";
 
 /** AuthProvider lives inside the router so every route can read `useAuth`. */
@@ -63,6 +64,8 @@ export const router = createBrowserRouter([
                                 element:
                                     r.name === "experiments" ? (
                                         <ExperimentView />
+                                    ) : r.name === "cases" ? (
+                                        <CaseView />
                                     ) : (
                                         <ResourceDetailPage resource={r} />
                                     ),
