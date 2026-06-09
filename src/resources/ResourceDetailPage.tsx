@@ -50,7 +50,7 @@ export default function ResourceDetailPage<T extends { id?: string }>({
         : resource.singular;
 
     return (
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <div className="flex w-full flex-col gap-6">
             {back && (
                 <Button asChild variant="ghost" size="sm" className="self-start">
                     <Link to={back.to}>
