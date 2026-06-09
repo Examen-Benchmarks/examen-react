@@ -124,7 +124,7 @@ export default function ExperimentView() {
                         <h3 className="text-sm font-semibold">
                             Summary · mean per case
                         </h3>
-                        <div className="rounded-lg border">
+                        <div className="overflow-hidden rounded-lg border">
                             <MeansMatrix
                                 report={r.report}
                                 onCaseClick={(c) => navigate(`/cases/${c.id}`)}
@@ -134,7 +134,7 @@ export default function ExperimentView() {
 
                     <section className="flex flex-col gap-2">
                         <h3 className="text-sm font-semibold">All runs</h3>
-                        <div className="rounded-lg border">
+                        <div className="overflow-hidden rounded-lg border">
                             <RunsTable
                                 runs={r.runs}
                                 metrics={r.metrics}

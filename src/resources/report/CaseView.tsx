@@ -95,7 +95,7 @@ export default function CaseView() {
                         )}
                     </p>
                 ) : theCase ? (
-                    <div className="rounded-lg border">
+                    <div className="overflow-hidden rounded-lg border">
                         <RunsTable
                             runs={runs}
                             metrics={metrics}

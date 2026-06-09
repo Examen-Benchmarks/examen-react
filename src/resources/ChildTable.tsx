@@ -59,7 +59,7 @@ export default function ChildTable({
                     No {section.heading.toLowerCase()}.
                 </p>
             ) : (
-                <div className="rounded-lg border">
+                <div className="overflow-hidden rounded-lg border">
                     <Table>
                         <TableHeader>
                             <TableRow>
