@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/errors";
 import { registry, type ChildSection } from "./registry";
-import ExperimentNotesList from "./report/ExperimentNotesList";
+import ExperimentNotesHover from "./report/ExperimentNotesHover";
 
 /**
  * One parent-scoped child list rendered on a detail page. Looks the child
@@ -57,8 +57,6 @@ export default function ChildTable({
                 <p className="text-sm text-muted-foreground">
                     No {section.heading.toLowerCase()}.
                 </p>
-            ) : section.variant === "notes" ? (
-                <ExperimentNotesList items={items} />
             ) : (
                 <div className="rounded-lg border">
                     <Table>
@@ -69,6 +67,9 @@ export default function ChildTable({
                                         {c.header}
                                     </TableHead>
                                 ))}
+                                {section.variant === "notes" && (
+                                    <TableHead className="w-10" />
+                                )}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -90,6 +91,14 @@ export default function ChildTable({
                                             {c.cell(item)}
                                         </TableCell>
                                     ))}
+                                    {section.variant === "notes" &&
+                                        item.id && (
+                                            <TableCell className="w-10">
+                                                <ExperimentNotesHover
+                                                    experimentId={item.id}
+                                                />
+                                            </TableCell>
+                                        )}
                                 </TableRow>
                             ))}
                         </TableBody>
