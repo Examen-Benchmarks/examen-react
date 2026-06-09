@@ -6,7 +6,7 @@ import AppShell from "@/components/AppShell";
 import ResourceListPage from "@/resources/ResourceListPage";
 import ResourceCreatePage from "@/resources/ResourceCreatePage";
 import ResourceDetailPage from "@/resources/ResourceDetailPage";
-import { resources } from "@/resources/registry";
+import { navResources, detailResources } from "@/resources/registry";
 
 /** AuthProvider lives inside the router so every route can read `useAuth`. */
 function AuthRoot() {
@@ -32,29 +32,35 @@ export const router = createBrowserRouter([
                                 index: true,
                                 element: (
                                     <Navigate
-                                        to={`/${resources[0].name}`}
+                                        to={`/${navResources[0].name}`}
                                         replace
                                     />
                                 ),
                             },
-                            ...resources.flatMap((r) => [
+                            // Top-level list (+ create) for nav resources.
+                            ...navResources.flatMap((r) => [
                                 {
                                     path: r.name,
                                     element: <ResourceListPage resource={r} />,
                                 },
-                                {
-                                    path: `${r.name}/new`,
-                                    element: (
-                                        <ResourceCreatePage resource={r} />
-                                    ),
-                                },
-                                {
-                                    path: `${r.name}/:id`,
-                                    element: (
-                                        <ResourceDetailPage resource={r} />
-                                    ),
-                                },
+                                ...(r.createSchema
+                                    ? [
+                                          {
+                                              path: `${r.name}/new`,
+                                              element: (
+                                                  <ResourceCreatePage
+                                                      resource={r}
+                                                  />
+                                              ),
+                                          },
+                                      ]
+                                    : []),
                             ]),
+                            // Flat detail route for every navigable resource.
+                            ...detailResources.map((r) => ({
+                                path: `${r.name}/:id`,
+                                element: <ResourceDetailPage resource={r} />,
+                            })),
                         ],
                     },
                 ],

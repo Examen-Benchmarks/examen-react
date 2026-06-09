@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { FolderKanban, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
-import { resources } from "@/resources/registry";
+import { navResources } from "@/resources/registry";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ export default function AppShell() {
                     Examen
                 </div>
                 <nav className="flex flex-col gap-1">
-                    {resources.map((r) => (
+                    {navResources.map((r) => (
                         <NavLink
                             key={r.name}
                             to={`/${r.name}`}

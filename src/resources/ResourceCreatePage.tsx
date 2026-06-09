@@ -22,12 +22,12 @@ export default function ResourceCreatePage<T extends { id?: string }>({
     const queryClient = useQueryClient();
 
     const { objectMutation } = useMutateResource<Record<string, unknown>, T>({
-        url: resource.path,
+        url: resource.listUrl!,
         method: "POST",
         format: "JSON",
         schema: resource.itemSchema,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [resource.path] });
+            queryClient.invalidateQueries({ queryKey: [resource.listUrl] });
             toast.success(`${resource.singular} created`);
             navigate(`/${resource.name}`);
         },
@@ -47,7 +47,7 @@ export default function ResourceCreatePage<T extends { id?: string }>({
                 </CardHeader>
                 <CardContent>
                     <SchemaForm
-                        schema={resource.createSchema}
+                        schema={resource.createSchema!}
                         fields={resource.createFields}
                         submitLabel={`Create ${resource.singular}`}
                         onSubmit={(values) =>

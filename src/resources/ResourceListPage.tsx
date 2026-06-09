@@ -21,7 +21,7 @@ export default function ResourceListPage<T extends { id?: string }>({
 }) {
     const navigate = useNavigate();
     const { objectQuery } = useGetResources<T>({
-        url: resource.path,
+        url: resource.listUrl!,
         schema: resource.itemSchema,
         keys: [resource.name],
     });
@@ -41,12 +41,14 @@ export default function ResourceListPage<T extends { id?: string }>({
                         </p>
                     )}
                 </div>
-                <Button asChild>
-                    <Link to={`/${resource.name}/new`}>
-                        <Plus className="size-4" />
-                        New {resource.singular}
-                    </Link>
-                </Button>
+                {resource.createSchema && (
+                    <Button asChild>
+                        <Link to={`/${resource.name}/new`}>
+                            <Plus className="size-4" />
+                            New {resource.singular}
+                        </Link>
+                    </Button>
+                )}
             </div>
 
             {objectQuery.isLoading ? (

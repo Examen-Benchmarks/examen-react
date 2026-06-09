@@ -10,7 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/errors";
-import type { Resource } from "./registry";
+import ChildTable from "./ChildTable";
+import { registry, type Resource } from "./registry";
+
+function isEmptyJson(value: unknown): boolean {
+    if (value == null) return true;
+    if (typeof value === "object" && Object.keys(value).length === 0)
+        return true;
+    return false;
+}
 
 export default function ResourceDetailPage<T extends { id?: string }>({
     resource,
@@ -19,27 +27,42 @@ export default function ResourceDetailPage<T extends { id?: string }>({
 }) {
     const { id } = useParams<{ id: string }>();
     const { objectQuery } = useGetResource<T>({
-        url: `${resource.path}/${id}`,
+        url: resource.itemUrl!(id!),
         schema: resource.itemSchema,
         enabled: !!id,
     });
     const item = objectQuery.data;
 
+    // Back link: to the parent entity if known, else the top-level list.
+    let back: { to: string; label: string } | null = null;
+    if (item && resource.parentLink) {
+        const ref = resource.parentLink(item);
+        if (ref) {
+            const parent = registry[ref.resource];
+            back = { to: `/${parent.name}/${ref.id}`, label: parent.singular };
+        }
+    } else if (resource.listUrl) {
+        back = { to: `/${resource.name}`, label: resource.label };
+    }
+
+    const title = item
+        ? `${resource.singular} · ${String(item[resource.titleField] ?? "")}`
+        : resource.singular;
+
     return (
-        <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
-            <Button asChild variant="ghost" size="sm" className="self-start">
-                <Link to={`/${resource.name}`}>
-                    <ArrowLeft className="size-4" />
-                    {resource.label}
-                </Link>
-            </Button>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+            {back && (
+                <Button asChild variant="ghost" size="sm" className="self-start">
+                    <Link to={back.to}>
+                        <ArrowLeft className="size-4" />
+                        {back.label}
+                    </Link>
+                </Button>
+            )}
+
             <Card>
                 <CardHeader>
-                    <CardTitle>
-                        {item
-                            ? String(item[resource.titleField] ?? resource.singular)
-                            : resource.singular}
-                    </CardTitle>
+                    <CardTitle className="break-words">{title}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {objectQuery.isLoading ? (
@@ -68,6 +91,35 @@ export default function ResourceDetailPage<T extends { id?: string }>({
                     ) : null}
                 </CardContent>
             </Card>
+
+            {item &&
+                resource.detailJson?.map((s) => {
+                    const value = s.value(item);
+                    if (isEmptyJson(value)) return null;
+                    return (
+                        <Card key={s.heading}>
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    {s.heading}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <pre className="max-h-80 overflow-auto rounded-md bg-muted p-3 text-xs">
+                                    {JSON.stringify(value, null, 2)}
+                                </pre>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+
+            {item?.id &&
+                resource.children?.map((section) => (
+                    <ChildTable
+                        key={section.resource + section.heading}
+                        section={section}
+                        parentId={item.id!}
+                    />
+                ))}
         </div>
     );
 }
