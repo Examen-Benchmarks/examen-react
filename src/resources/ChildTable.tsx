@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/errors";
 import { registry, type ChildSection } from "./registry";
+import ExperimentNotesList from "./report/ExperimentNotesList";
 
 /**
  * One parent-scoped child list rendered on a detail page. Looks the child
@@ -56,6 +57,8 @@ export default function ChildTable({
                 <p className="text-sm text-muted-foreground">
                     No {section.heading.toLowerCase()}.
                 </p>
+            ) : section.variant === "notes" ? (
+                <ExperimentNotesList items={items} />
             ) : (
                 <div className="rounded-lg border">
                     <Table>

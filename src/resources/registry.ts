@@ -32,6 +32,12 @@ export interface ChildSection {
     heading: string;
     /** Builds the (parent-scoped) list URL from the current entity's id. */
     listUrl: (parentId: string) => string;
+    /**
+     * How to render the section. "table" (default) uses the child resource's
+     * columns; "notes" renders each item via the latest-judge-reasons summary
+     * (experiments only).
+     */
+    variant?: "table" | "notes";
 }
 
 /** A free-form JSON column shown as a formatted block on the detail page. */
@@ -153,6 +159,7 @@ export const benches: Resource<Bench> = {
             resource: "experiments",
             heading: "Experiments",
             listUrl: (id) => `/benches/${id}/experiments`,
+            variant: "notes",
         },
     ],
 };
