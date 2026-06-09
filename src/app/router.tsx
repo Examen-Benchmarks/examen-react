@@ -6,6 +6,7 @@ import AppShell from "@/components/AppShell";
 import ResourceListPage from "@/resources/ResourceListPage";
 import ResourceCreatePage from "@/resources/ResourceCreatePage";
 import ResourceDetailPage from "@/resources/ResourceDetailPage";
+import ExperimentView from "@/resources/report/ExperimentView";
 import { navResources, detailResources } from "@/resources/registry";
 
 /** AuthProvider lives inside the router so every route can read `useAuth`. */
@@ -59,7 +60,12 @@ export const router = createBrowserRouter([
                             // Flat detail route for every navigable resource.
                             ...detailResources.map((r) => ({
                                 path: `${r.name}/:id`,
-                                element: <ResourceDetailPage resource={r} />,
+                                element:
+                                    r.name === "experiments" ? (
+                                        <ExperimentView />
+                                    ) : (
+                                        <ResourceDetailPage resource={r} />
+                                    ),
                             })),
                         ],
                     },

@@ -101,3 +101,13 @@ export const MetricSchema = z.object({
     context: z.unknown().nullish(),
 });
 export type Metric = z.infer<typeof MetricSchema>;
+
+// ── Version (the thing being benchmarked; powers version scoping + evolution) ──
+
+export const VersionSchema = z.object({
+    ...entityFields,
+    projectId: z.string(),
+    components: z.unknown(),
+    componentsHash: z.string(),
+});
+export type Version = z.infer<typeof VersionSchema>;

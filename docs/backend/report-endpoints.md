@@ -1,179 +1,67 @@
-# Backend spec: report / aggregation endpoints
+# Backend spec: bulk read endpoints for client-side aggregation
 
-> **Status:** proposed — blocks the frontend benchmark views.
-> **Why:** the existing API exposes only raw, bare-array reads. The benchmark
-> dashboards (matrix, grade, evolution, comparison) need aggregation. Per the
-> eval-dashboard research, aggregation belongs **server-side** (centralizes the
-> logic the static HTML renderer already has; lets the client cache small,
-> pre-shaped payloads). This is essentially the renderer's aggregation exposed
-> as JSON.
+> **Decision:** aggregation is done **client-side**. The backend adds two
+> read-only endpoints so the client can fetch everything for a report in a
+> couple of calls and aggregate itself — no server-side stats, grades, or
+> time-series. (Supersedes the earlier server-side `/report` proposal.)
 >
-> Conventions: **snake_case** wire keys (matches the rest of the API); UUIDs as
-> strings; timestamps ISO-8601; auth via the `examen_session` cookie / API key,
-> same as every other endpoint. Lists stay bare arrays elsewhere — these report
-> endpoints return objects.
+> Conventions: **snake_case** wire keys; UUID strings; ISO-8601 timestamps;
+> auth via the `examen_session` cookie / API key like every other endpoint.
+> Both return **bare arrays**, consistent with the rest of the API.
 
-## Aggregation semantics (shared)
+## 1. `GET /metrics` — bulk metrics by run coordinates
 
-- A **repeat** = one of the N runs of the same `(case, version)`. Cell values
-  aggregate a metric **over the repeats** of a case at one version.
-- A cell aggregates **only runs that emitted that metric** (errored runs emit
-  none); `n` reflects the contributing run count, so it can be < `run_count`.
-- A report is scoped to **one version** (the matrix is "as of" a version).
-  Default = the **latest version (by `created_at`) that has runs** for the
-  experiment.
-- **Grade** = a single headline number per experiment. Default method:
-  `mean_of_metric_means` (mean across the per-metric experiment-wide means).
-  Treat the method as **configurable later**; return which method produced it.
+Returns metric rows in bulk so the client doesn't N+1 over `/runs/{id}/metrics`.
 
----
+- **Query (≥1 required):** `run_id` | `bench_id` | `experiment_id` | `case_id` |
+  `version_id`. The run-based filters resolve via a join to `runs` (metrics
+  don't carry those columns).
+- **Returns:** `[]MetricResponse` — identical shape to `GET /runs/{id}/metrics`
+  (`id, run_id, key, name, description?, kind, value, context?, created_at, updated_at`).
+- **Common call:** `GET /metrics?experiment_id={id}&version_id={ver}` → every
+  metric for one report in a single request.
 
-## 1. Experiment report — `GET /experiments/{id}/report` ⭐ PRIORITY
+## 2. `GET /versions` — list versions
 
-Powers the **Experiment view** (case×metric heatmap matrix + headline grade).
-This one endpoint unblocks the first build.
-
-**Query params**
-- `version_id` (optional) — which version's runs to aggregate. Default: latest
-  with runs.
-
-**Response**
-```jsonc
-{
-  "experiment": { "id": "…", "key": "…", "name": "…", "description": null },
-  "version":    { "id": "…", "components_hash": "…", "created_at": "…" },
-  "run_summary": { "total": 15, "ok": 15, "errored": 0, "succeeded_pct": 100.0 },
-
-  "metrics": [                                  // column defs, display order
-    { "key": "time_awareness", "name": "Time Awareness", "kind": "ratio" },
-    { "key": "desire_score",   "name": "Desire Score",   "kind": "ratio" }
-  ],
-
-  "cases": [
-    {
-      "case": { "id": "…", "key": "wrong_color_dress", "name": "…" },
-      "run_count": 5, "ok_count": 5, "errored_count": 0,
-      "cells": {                                // keyed by metric key
-        "time_awareness": { "mean": 1.0, "n": 5, "stddev": 0.0, "min": 1.0, "max": 1.0 },
-        "desire_score":   { "mean": 0.0, "n": 5, "stddev": 0.0, "min": 0.0, "max": 0.0 }
-      }
-    }
-  ],
-
-  "metric_aggregates": {                        // column footer: experiment-wide mean
-    "time_awareness": { "mean": 0.93, "n": 75 },
-    "desire_score":   { "mean": 0.10, "n": 75 }
-  },
-
-  "grade": { "value": 0.86, "scale": "ratio", "method": "mean_of_metric_means" }
-}
-```
-
-**Frontend mapping:** `metrics` → table columns; `cases[].cells[metric]` →
-heatmap cells (`mean` colored vs threshold, `n`/`stddev` as secondary line);
-`metric_aggregates` → column footer; `grade` → headline chip; `run_summary` →
-sub-header.
+- **Query (exactly one):** `project_id` (all versions in the project) |
+  `experiment_id` (only versions that **have runs** for that experiment).
+- **Order:** newest-first → `[0]` is the **latest version with runs**, which the
+  matrix defaults to. Also unblocks the evolution view.
+- **Returns:** `[]VersionResponse` (`id, project_id, components, components_hash,
+  created_at, updated_at`).
 
 ---
 
-## 2. Experiment evolution — `GET /experiments/{id}/evolution`
+## Client-side report flow (Experiment matrix)
 
-Powers the **History/evolution** tab: grade (and per-metric means) across
-versions over time.
+For experiment `E`, default to the latest version:
 
-```jsonc
-{
-  "experiment": { "id": "…", "key": "…", "name": "…" },
-  "metrics": [ { "key": "…", "name": "…", "kind": "ratio" } ],
-  "points": [                                   // ordered by version.created_at ASC
-    {
-      "version": { "id": "…", "components_hash": "…", "created_at": "…" },
-      "run_summary": { "total": 15, "ok": 15, "errored": 0, "succeeded_pct": 100.0 },
-      "grade": 0.82,
-      "metric_means": { "time_awareness": 0.9, "desire_score": 0.1 }
-    }
-  ]
-}
-```
+1. `GET /versions?experiment_id=E` → `versions`; default `version = versions[0]`.
+2. `GET /experiments/E/cases` → `cases` (row labels; shows cases even with 0 runs).
+3. `GET /runs?experiment_id=E&version_id=V` → `runs` (repeats for this version).
+4. `GET /metrics?experiment_id=E&version_id=V` → `metrics` (bulk).
 
-Frontend renders a line/area chart of `grade` (and optionally per-metric means);
-version-over-version deltas / regression flags are computed client-side from
-consecutive points.
+Then the client (`src/resources/report/aggregate.ts`):
+- joins `metrics → runs` by `run_id`, groups runs by `case_id`;
+- per `(case, metric_key)` cell: `mean, n, stddev, min, max` over the case's repeats;
+- per-metric experiment-wide aggregate (column footer);
+- **grade** = mean of per-metric means over score-like kinds (`ratio`, `pct`);
+- **run summary** from `run.status` (`succeeded` = ok; `failed`/`errored` = not).
 
----
+### Reference values (from the Go enums)
+- `RunStatus`: `succeeded | failed | errored`.
+- `MetricKind`: `pct | duration | currency | ratio | count | raw`
+  (heatmap coloring applies to the `[0,1]`-style kinds `ratio`/`pct`).
 
-## 3. Experiment comparison — `GET /experiments/{id}/compare`
+## What needs no endpoint
 
-Powers the **Comparison view** (baseline vs candidate).
+The **per-sample drill-down** (case input/output + each metric's `value` and
+judge `reply`/`reason`) reuses the **already-fetched** runs + metrics from the
+report (filtered by `case_id` in memory) — no extra request.
 
-**Query params:** `baseline_version_id`, `candidate_version_id` (both required).
+## Downstream views (same two endpoints)
 
-```jsonc
-{
-  "experiment": { "id": "…", "key": "…", "name": "…" },
-  "metrics": [ { "key": "…", "name": "…", "kind": "ratio" } ],
-  "baseline":  { "id": "…", "components_hash": "…", "created_at": "…" },
-  "candidate": { "id": "…", "components_hash": "…", "created_at": "…" },
-  "cases": [
-    {
-      "case": { "id": "…", "key": "…", "name": "…" },
-      "cells": {
-        "time_awareness": {
-          "baseline_mean": 0.8, "candidate_mean": 1.0,
-          "delta": 0.2, "status": "improved"     // improved | regressed | unchanged
-        }
-      }
-    }
-  ],
-  "grade": { "baseline": 0.80, "candidate": 0.86, "delta": 0.06, "status": "improved" }
-}
-```
-
-Cases align by **stable `case.id`** across both versions (cases are immutable by
-convention, so the key/id is stable).
-
----
-
-## 4. Bench overview — `GET /benches/{id}/report`
-
-Powers the **Bench overview**: per-experiment grade chips, run counts, sparkline.
-
-```jsonc
-{
-  "bench": { "id": "…", "key": "…", "name": "…" },
-  "experiments": [
-    {
-      "experiment": { "id": "…", "key": "…", "name": "…" },
-      "grade": 0.86,
-      "run_summary": { "total": 15, "ok": 15, "errored": 0, "succeeded_pct": 100.0 },
-      "sparkline": [                             // recent versions, ASC
-        { "created_at": "…", "grade": 0.82 },
-        { "created_at": "…", "grade": 0.86 }
-      ]
-    }
-  ]
-}
-```
-
----
-
-## What does NOT need a new endpoint
-
-The **per-run / sample drill-down** (side panel with case input, output,
-expected, and per-metric `value` + judge `reply`/`reason`) is served by the
-**existing** reads:
-- `GET /runs?case_id={id}&version_id={id}` (or `?experiment_id=`) → the runs.
-- `GET /runs/{id}/metrics` → each metric's `value`, `kind`, and `context` JSON.
-
-No aggregation needed there — only the raw rows.
-
----
-
-## Build order (frontend, once endpoints land)
-
-1. **Experiment matrix + drill-down** — needs **§1** (drill-down uses existing reads). ← first
-2. **Comparison** — needs **§3**.
-3. **History/evolution** — needs **§2**.
-4. **Bench overview** — needs **§4**.
-
-§1 is the single unblocker for the first and highest-value build.
+- **Evolution:** `GET /versions?experiment_id=E` for the version axis, then a
+  report aggregation per version (or one bulk `GET /metrics?experiment_id=E`
+  across all versions, grouped client-side by `version_id`).
+- **Comparison:** two versions → two reports → diff client-side.
