@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/errors";
 import { registry, type ChildSection } from "./registry";
 import ExperimentNotesHover from "./report/ExperimentNotesHover";
+import ExperimentGradeCell from "./report/ExperimentGradeCell";
 
 /**
  * One parent-scoped child list rendered on a detail page. Looks the child
@@ -68,6 +69,11 @@ export default function ChildTable({
                                     </TableHead>
                                 ))}
                                 {section.variant === "notes" && (
+                                    <TableHead className="text-right">
+                                        Grade
+                                    </TableHead>
+                                )}
+                                {section.variant === "notes" && (
                                     <TableHead className="w-10" />
                                 )}
                             </TableRow>
@@ -91,6 +97,14 @@ export default function ChildTable({
                                             {c.cell(item)}
                                         </TableCell>
                                     ))}
+                                    {section.variant === "notes" &&
+                                        item.id && (
+                                            <TableCell className="text-right">
+                                                <ExperimentGradeCell
+                                                    experimentId={item.id}
+                                                />
+                                            </TableCell>
+                                        )}
                                     {section.variant === "notes" &&
                                         item.id && (
                                             <TableCell className="w-10">

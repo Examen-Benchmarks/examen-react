@@ -4,7 +4,6 @@ import {
     HoverCardContent,
     HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useExperimentReport } from "./useExperimentReport";
 
@@ -14,10 +13,6 @@ function reasonOf(context: unknown): string | undefined {
         if (typeof r === "string" && r.trim()) return r;
     }
     return undefined;
-}
-
-function fmt(n: number): string {
-    return Number(n.toFixed(2)).toString();
 }
 
 /**
@@ -44,14 +39,9 @@ function NotesContent({ experimentId }: { experimentId: string }) {
     return (
         <div className="flex flex-col gap-3">
             {r.report && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {r.report.grade != null && (
-                        <Badge variant="secondary">
-                            Grade {fmt(r.report.grade)}
-                        </Badge>
-                    )}
-                    <span>{r.report.runSummary.total} runs</span>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                    {r.report.runSummary.total} runs · latest run
+                </p>
             )}
 
             {r.isLoading ? (
