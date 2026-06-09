@@ -2,12 +2,6 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useGetResource, useGetResources } from "@examen/crud";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/errors";
@@ -82,32 +76,26 @@ export default function CaseView() {
             </div>
 
             {theCase && hasJson(theCase.payload) && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Input</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <pre className="max-h-80 overflow-auto rounded-md bg-muted p-3 text-xs">
-                            {JSON.stringify(theCase.payload, null, 2)}
-                        </pre>
-                    </CardContent>
-                </Card>
+                <section className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold">Input</h3>
+                    <pre className="max-h-80 overflow-auto rounded-lg border bg-muted p-3 text-xs">
+                        {JSON.stringify(theCase.payload, null, 2)}
+                    </pre>
+                </section>
             )}
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-base">Runs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <Skeleton className="h-40 w-full" />
-                    ) : isError ? (
-                        <p className="text-sm text-destructive" role="alert">
-                            {getErrorMessage(
-                                caseQ.error ?? runsQ.error ?? metricsQ.error,
-                            )}
-                        </p>
-                    ) : theCase ? (
+            <section className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold">Runs</h3>
+                {isLoading ? (
+                    <Skeleton className="h-40 w-full" />
+                ) : isError ? (
+                    <p className="text-sm text-destructive" role="alert">
+                        {getErrorMessage(
+                            caseQ.error ?? runsQ.error ?? metricsQ.error,
+                        )}
+                    </p>
+                ) : theCase ? (
+                    <div className="rounded-lg border">
                         <RunsTable
                             runs={runs}
                             metrics={metrics}
@@ -117,9 +105,9 @@ export default function CaseView() {
                                 setDrill({ title, runs: [run] })
                             }
                         />
-                    ) : null}
-                </CardContent>
-            </Card>
+                    </div>
+                ) : null}
+            </section>
 
             <RunsDrilldown
                 drill={drill}

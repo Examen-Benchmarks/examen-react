@@ -2,12 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useGetResource } from "@examen/crud";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -126,27 +120,21 @@ export default function ExperimentView() {
                 </p>
             ) : r.report ? (
                 <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Summary · mean per case
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                    <section className="flex flex-col gap-2">
+                        <h3 className="text-sm font-semibold">
+                            Summary · mean per case
+                        </h3>
+                        <div className="rounded-lg border">
                             <MeansMatrix
                                 report={r.report}
-                                onCaseClick={(c) =>
-                                    navigate(`/cases/${c.id}`)
-                                }
+                                onCaseClick={(c) => navigate(`/cases/${c.id}`)}
                             />
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </section>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">All runs</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                    <section className="flex flex-col gap-2">
+                        <h3 className="text-sm font-semibold">All runs</h3>
+                        <div className="rounded-lg border">
                             <RunsTable
                                 runs={r.runs}
                                 metrics={r.metrics}
@@ -155,8 +143,8 @@ export default function ExperimentView() {
                                     setDrill({ title, runs: [run] })
                                 }
                             />
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </section>
                 </>
             ) : null}
 
