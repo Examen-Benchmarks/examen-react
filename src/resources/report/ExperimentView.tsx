@@ -21,8 +21,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { getErrorMessage } from "@/lib/errors";
-import { ExperimentSchema, type Case, type Experiment } from "../schemas";
-import { type ExperimentReport } from "./aggregate";
+import { ExperimentSchema, type Experiment } from "../schemas";
+import { type CaseRef, type ExperimentReport } from "./results";
 import { fmt, gradeTint, scoreTint } from "./format";
 import { useExperimentReport } from "./useExperimentReport";
 import RunsTable from "./RunsTable";
@@ -163,7 +163,7 @@ function MeansMatrix({
     onCaseClick,
 }: {
     report: ExperimentReport;
-    onCaseClick: (c: Case) => void;
+    onCaseClick: (c: CaseRef) => void;
 }) {
     return (
         <div className="overflow-x-auto">
@@ -223,7 +223,7 @@ function MeansMatrix({
                                                 m.kind,
                                             ),
                                         }}
-                                        title={`mean ${fmt(cell.mean)} · n=${cell.n} · σ=${fmt(cell.stddev)} · [${fmt(cell.min)}, ${fmt(cell.max)}]`}
+                                        title={`mean ${fmt(cell.mean)} · n=${cell.n} · σ=${cell.stddev == null ? "—" : fmt(cell.stddev)} · [${fmt(cell.min)}, ${fmt(cell.max)}]`}
                                     >
                                         {fmt(cell.mean)}
                                         <span className="ml-1 text-xs text-muted-foreground">

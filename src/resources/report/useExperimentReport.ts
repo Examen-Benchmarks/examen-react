@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { useGetResources } from "@examen/crud";
+import { useState } from "react";
+import type { AxiosError } from "axios";
+import { useQuery } from "@tanstack/react-query";
+import { useGetResources, useApiClient } from "@examen/crud";
 import {
     VersionSchema,
     RunSchema,
@@ -10,15 +12,24 @@ import {
     type Metric,
     type Case,
 } from "../schemas";
-import { aggregateReport, type ExperimentReport } from "./aggregate";
+import {
+    ResultsResponseSchema,
+    toExperimentReport,
+    type ExperimentReport,
+    type ResultsResponse,
+} from "./results";
 
 /**
- * Fetches everything for an experiment's report and aggregates it client-side.
- * Flow: list versions (newest-first) → default to [0] → fetch runs + bulk
- * metrics + cases for that version → join & aggregate. Raw runs/metrics/cases
- * are returned too, so the sample drill-down reuses them with no extra request.
+ * Drives an experiment's report. Flow: list versions (newest-first) → default to
+ * [0] → ask the backend for the aggregated projection of that (experiment,
+ * version) via GET /versions/{id}/results?experiment_id=. Aggregation is
+ * backend-only (D17), so there is no client-side join — `report` is just the
+ * mapped server response. Raw runs/metrics/cases are still fetched, but only to
+ * feed the "All runs" table and the per-run drill-down.
  */
 export function useExperimentReport(experimentId: string) {
+    const api = useApiClient();
+
     const { objectQuery: versionsQ } = useGetResources<Version>({
         url: `/versions?experiment_id=${experimentId}`,
         schema: VersionSchema,
@@ -31,6 +42,22 @@ export function useExperimentReport(experimentId: string) {
     const enabled = !!selectedVersionId;
     const v = selectedVersionId ?? "";
 
+    // Aggregated matrix + grade — computed server-side.
+    const resultsQ = useQuery<ResultsResponse, AxiosError>({
+        queryKey: ["results", experimentId, v],
+        queryFn: async () => {
+            const res = await api.get(
+                `/versions/${v}/results?experiment_id=${experimentId}`,
+            );
+            // Parsed straight off the wire (no snake→camel) to preserve the
+            // metric-keyed `cells`/`metric_means` maps. See results.ts.
+            return ResultsResponseSchema.parse(res.data);
+        },
+        enabled,
+        retry: false,
+    });
+
+    // Raw reads — only for the per-run "All runs" table and drill-down.
     const { objectQuery: casesQ } = useGetResources<Case>({
         url: `/experiments/${experimentId}/cases`,
         schema: CaseSchema,
@@ -49,10 +76,9 @@ export function useExperimentReport(experimentId: string) {
         enabled,
     });
 
-    const report = useMemo<ExperimentReport | null>(() => {
-        if (!runsQ.data || !metricsQ.data || !casesQ.data) return null;
-        return aggregateReport(runsQ.data, metricsQ.data, casesQ.data);
-    }, [runsQ.data, metricsQ.data, casesQ.data]);
+    const report: ExperimentReport | null = resultsQ.data
+        ? toExperimentReport(resultsQ.data)
+        : null;
 
     return {
         versions,
@@ -66,15 +92,20 @@ export function useExperimentReport(experimentId: string) {
         isLoading:
             versionsQ.isLoading ||
             casesQ.isLoading ||
-            (enabled && (runsQ.isLoading || metricsQ.isLoading)),
+            (enabled &&
+                (resultsQ.isLoading ||
+                    runsQ.isLoading ||
+                    metricsQ.isLoading)),
         isError:
             versionsQ.isError ||
             casesQ.isError ||
+            resultsQ.isError ||
             runsQ.isError ||
             metricsQ.isError,
         error:
             versionsQ.error ??
             casesQ.error ??
+            resultsQ.error ??
             runsQ.error ??
             metricsQ.error ??
             null,

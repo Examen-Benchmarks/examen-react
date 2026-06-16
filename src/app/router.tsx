@@ -8,6 +8,8 @@ import ResourceCreatePage from "@/resources/ResourceCreatePage";
 import ResourceDetailPage from "@/resources/ResourceDetailPage";
 import ExperimentView from "@/resources/report/ExperimentView";
 import CaseView from "@/resources/report/CaseView";
+import BenchView from "@/resources/bench/BenchView";
+import ApiKeysPage from "@/resources/apiKeys/ApiKeysPage";
 import { navResources, detailResources } from "@/resources/registry";
 
 /** AuthProvider lives inside the router so every route can read `useAuth`. */
@@ -39,6 +41,7 @@ export const router = createBrowserRouter([
                                     />
                                 ),
                             },
+                            { path: "api-keys", element: <ApiKeysPage /> },
                             // Top-level list (+ create) for nav resources.
                             ...navResources.flatMap((r) => [
                                 {
@@ -66,6 +69,8 @@ export const router = createBrowserRouter([
                                         <ExperimentView />
                                     ) : r.name === "cases" ? (
                                         <CaseView />
+                                    ) : r.name === "benches" ? (
+                                        <BenchView />
                                     ) : (
                                         <ResourceDetailPage resource={r} />
                                     ),

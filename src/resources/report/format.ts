@@ -1,4 +1,12 @@
-import { normalizeScore } from "./aggregate";
+/** Metric kinds whose value is a 0..1-style score we can grade / heatmap. */
+const SCORE_KINDS = new Set(["ratio", "pct"]);
+
+/** Normalize a metric value to [0,1] for coloring, or null if not scoreable. */
+export function normalizeScore(value: number, kind: string): number | null {
+    if (!SCORE_KINDS.has(kind)) return null;
+    if (kind === "pct") return value / 100;
+    return value; // ratio
+}
 
 /** Compact number: 2 decimals, trailing zeros trimmed. */
 export function fmt(n: number): string {

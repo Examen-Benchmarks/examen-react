@@ -106,7 +106,7 @@ export type Metric = z.infer<typeof MetricSchema>;
 
 export const VersionSchema = z.object({
     ...entityFields,
-    projectId: z.string(),
+    benchId: z.string(),
     components: z.unknown(),
     componentsHash: z.string(),
 });

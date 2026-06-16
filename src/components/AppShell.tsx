@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { FolderKanban, LogOut, ShieldCheck } from "lucide-react";
+import { FolderKanban, Key, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { navResources } from "@/resources/registry";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,23 @@ export default function AppShell() {
                             {r.label}
                         </NavLink>
                     ))}
+                </nav>
+
+                <nav className="mt-2 flex flex-col gap-1 border-t pt-2">
+                    <NavLink
+                        to="/api-keys"
+                        className={({ isActive }) =>
+                            cn(
+                                "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                                isActive
+                                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                    : "hover:bg-sidebar-accent/50",
+                            )
+                        }
+                    >
+                        <Key className="size-4" />
+                        API keys
+                    </NavLink>
                 </nav>
             </aside>
 
