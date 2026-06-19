@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info } from "lucide-react";
 import { useGetResource } from "@examen/crud";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +25,8 @@ import { ExperimentSchema, type Experiment } from "../schemas";
 import { type CaseRef, type ExperimentReport } from "./results";
 import { fmt, gradeTint, scoreTint } from "./format";
 import { useExperimentReport } from "./useExperimentReport";
+import EvolutionSection from "./EvolutionSection";
+import VersionComponentsHover from "./VersionComponentsHover";
 import RunsTable from "./RunsTable";
 import RunsDrilldown, { type Drill } from "./RunsDrilldown";
 
@@ -41,6 +43,9 @@ export default function ExperimentView() {
     const navigate = useNavigate();
 
     const experiment = expQ.data;
+    const selectedVersion = r.versions.find(
+        (v) => v.id === r.selectedVersionId,
+    );
 
     return (
         <div className="flex w-full flex-col gap-6">
@@ -105,6 +110,17 @@ export default function ExperimentView() {
                             </SelectContent>
                         </Select>
                     )}
+                    {selectedVersion && (
+                        <VersionComponentsHover version={selectedVersion}>
+                            <span
+                                className="inline-flex size-8 cursor-help items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+                                aria-label="Version components"
+                                title="Version components"
+                            >
+                                <Info className="size-4" />
+                            </span>
+                        </VersionComponentsHover>
+                    )}
                 </div>
             </div>
 
@@ -120,6 +136,12 @@ export default function ExperimentView() {
                 </p>
             ) : r.report ? (
                 <>
+                    <EvolutionSection
+                        experimentId={experimentId}
+                        selectedVersionId={r.selectedVersionId}
+                        onSelectVersion={(vid) => r.setSelectedVersionId(vid)}
+                    />
+
                     <section className="flex flex-col gap-2">
                         <h3 className="text-sm font-semibold">
                             Summary · mean per case

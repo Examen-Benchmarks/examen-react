@@ -94,8 +94,31 @@ export function useBenchOverview(benchId: string) {
         | AxiosError
         | undefined;
 
+    // Per-experiment grade trend across the recent versions (oldest→newest),
+    // read straight off the already-fetched projections — no extra requests.
+    // Truncated at the selected version so the delta reflects the version being
+    // viewed vs its predecessor — not always the newest pair. The oldest
+    // selected ⇒ a single point ⇒ no delta.
+    const chronoRows = [...rows].reverse();
+    const selChronoIdx = chronoRows.findIndex(
+        (r) => r.version.id === selectedVersionId,
+    );
+    const gradeTrendFor = (experimentId: string): (number | null)[] => {
+        const upTo =
+            selChronoIdx >= 0
+                ? chronoRows.slice(0, selChronoIdx + 1)
+                : chronoRows;
+        return upTo.map((r) => {
+            const e = r.results?.experiments.find(
+                (x) => x.experiment.id === experimentId,
+            );
+            return e ? e.grade.value : null;
+        });
+    };
+
     return {
         rows,
+        gradeTrendFor,
         selectedVersionId,
         setSelectedVersionId: setPicked,
         groups: selectedResults ? groupByCollection(selectedResults) : [],

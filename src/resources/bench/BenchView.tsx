@@ -13,13 +13,11 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/lib/errors";
-import { BenchSchema, type Bench, type Version } from "../schemas";
+import { BenchSchema, type Bench } from "../schemas";
 import { fmt, gradeTint } from "../report/format";
+import VersionComponentsHover from "../report/VersionComponentsHover";
+import GradeDelta from "../report/GradeDelta";
 import { useBenchOverview, type CollectionGroup } from "./useBenchOverview";
-
-function shortHash(v: Version): string {
-    return (v.componentsHash ?? v.id ?? "").slice(0, 10);
-}
 
 export default function BenchView() {
     const { id } = useParams<{ id: string }>();
@@ -108,8 +106,10 @@ export default function BenchView() {
                                                         )
                                                     }
                                                 >
-                                                    <TableCell className="font-mono text-xs">
-                                                        {shortHash(version)}
+                                                    <TableCell className="text-xs">
+                                                        <VersionComponentsHover
+                                                            version={version}
+                                                        />
                                                         {selected && (
                                                             <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
                                                                 selected
@@ -160,6 +160,7 @@ export default function BenchView() {
                                 <CollectionGroupBlock
                                     key={g.key}
                                     group={g}
+                                    trendFor={b.gradeTrendFor}
                                     onExperimentClick={(expId) =>
                                         navigate(`/experiments/${expId}`)
                                     }
@@ -176,9 +177,11 @@ export default function BenchView() {
 /** One collection's experiments, under its breadcrumb heading. */
 function CollectionGroupBlock({
     group,
+    trendFor,
     onExperimentClick,
 }: {
     group: CollectionGroup;
+    trendFor: (experimentId: string) => (number | null)[];
     onExperimentClick: (experimentId: string) => void;
 }) {
     return (
@@ -215,6 +218,11 @@ function CollectionGroupBlock({
                                                 · {errors} err
                                             </span>
                                         )}
+                                    </TableCell>
+                                    <TableCell className="w-24 text-right">
+                                        <GradeDelta
+                                            values={trendFor(exp.experiment.id)}
+                                        />
                                     </TableCell>
                                     <TableCell className="w-20 text-right">
                                         {grade == null ? (

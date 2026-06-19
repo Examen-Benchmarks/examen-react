@@ -8,6 +8,11 @@ export function normalizeScore(value: number, kind: string): number | null {
     return value; // ratio
 }
 
+/** Whether a metric kind is a 0..1-style score (graded / trendable on a 0..1 axis). */
+export function isScoreKind(kind: string): boolean {
+    return SCORE_KINDS.has(kind);
+}
+
 /** Compact number: 2 decimals, trailing zeros trimmed. */
 export function fmt(n: number): string {
     return Number(n.toFixed(2)).toString();
