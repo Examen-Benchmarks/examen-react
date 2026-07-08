@@ -9,6 +9,7 @@ import ResourceDetailPage from "@/resources/ResourceDetailPage";
 import ExperimentView from "@/resources/report/ExperimentView";
 import CaseView from "@/resources/report/CaseView";
 import BenchView from "@/resources/bench/BenchView";
+import BenchCompareView from "@/resources/bench/BenchCompareView";
 import ApiKeysPage from "@/resources/apiKeys/ApiKeysPage";
 import { navResources, detailResources } from "@/resources/registry";
 
@@ -42,6 +43,12 @@ export const router = createBrowserRouter([
                                 ),
                             },
                             { path: "api-keys", element: <ApiKeysPage /> },
+                            // Bench version-comparison screen (more specific
+                            // than the flat benches/:id detail route below).
+                            {
+                                path: "benches/:id/compare",
+                                element: <BenchCompareView />,
+                            },
                             // Top-level list (+ create) for nav resources.
                             ...navResources.flatMap((r) => [
                                 {

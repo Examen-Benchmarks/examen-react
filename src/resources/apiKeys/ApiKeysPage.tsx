@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SchemaForm } from "@/forms/SchemaForm";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { getErrorMessage } from "@/lib/errors";
 import {
     CreateApiKeyInputSchema,
@@ -268,40 +269,16 @@ export default function ApiKeysPage() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog
+            <ConfirmDialog
                 open={!!revokeTarget}
-                onOpenChange={(next) => {
-                    if (!next) setRevokeTarget(null);
-                }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Revoke API key?</DialogTitle>
-                        <DialogDescription>
-                            “{revokeTarget?.name}” will stop working immediately
-                            and any client using it will lose access. This can’t
-                            be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setRevokeTarget(null)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            disabled={revokingId === revokeTarget?.id}
-                            onClick={confirmRevoke}
-                        >
-                            {revokingId === revokeTarget?.id
-                                ? "Revoking…"
-                                : "Revoke key"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                title="Revoke API key?"
+                description={`“${revokeTarget?.name}” will stop working immediately and any client using it will lose access. This can’t be undone.`}
+                confirmLabel="Revoke key"
+                pendingLabel="Revoking…"
+                pending={revokingId === revokeTarget?.id}
+                onConfirm={confirmRevoke}
+                onCancel={() => setRevokeTarget(null)}
+            />
         </div>
     );
 }

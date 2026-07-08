@@ -8,8 +8,12 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Case, Metric, Run } from "../schemas";
+import type { Metric, Run } from "../schemas";
 import { fmt, scoreTint } from "./format";
+
+// Only id/name/key are read, so a full Case (id optional) or a report CaseRef
+// both fit.
+type CaseLike = { id?: string; name: string; key: string };
 
 interface Column {
     key: string;
@@ -31,7 +35,7 @@ export default function RunsTable({
 }: {
     runs: Run[];
     metrics: Metric[];
-    cases: Case[];
+    cases: CaseLike[];
     showCaseColumn?: boolean;
     onRunClick: (run: Run, title: string) => void;
 }) {

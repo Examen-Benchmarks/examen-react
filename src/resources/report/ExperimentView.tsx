@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Info } from "lucide-react";
+import { Fragment, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, ChevronRight, Info } from "lucide-react";
 import { useGetResource } from "@examen/crud";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,8 +22,13 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { getErrorMessage } from "@/lib/errors";
-import { ExperimentSchema, type Experiment } from "../schemas";
-import { type CaseRef, type ExperimentReport } from "./results";
+import {
+    ExperimentSchema,
+    type Experiment,
+    type Metric,
+    type Run,
+} from "../schemas";
+import { type ExperimentReport } from "./results";
 import { fmt, gradeTint, scoreTint } from "./format";
 import { useExperimentReport } from "./useExperimentReport";
 import EvolutionSection from "./EvolutionSection";
@@ -40,7 +46,6 @@ export default function ExperimentView() {
     });
     const r = useExperimentReport(experimentId);
     const [drill, setDrill] = useState<Drill>(null);
-    const navigate = useNavigate();
 
     const experiment = expQ.data;
     const selectedVersion = r.versions.find(
@@ -144,23 +149,13 @@ export default function ExperimentView() {
 
                     <section className="flex flex-col gap-2">
                         <h3 className="text-sm font-semibold">
-                            Summary · mean per case
+                            Cases · mean per case, expand for runs
                         </h3>
                         <div className="overflow-hidden rounded-lg border">
                             <MeansMatrix
                                 report={r.report}
-                                onCaseClick={(c) => navigate(`/cases/${c.id}`)}
-                            />
-                        </div>
-                    </section>
-
-                    <section className="flex flex-col gap-2">
-                        <h3 className="text-sm font-semibold">All runs</h3>
-                        <div className="overflow-hidden rounded-lg border">
-                            <RunsTable
                                 runs={r.runs}
                                 metrics={r.metrics}
-                                cases={r.cases}
                                 onRunClick={(run, title) =>
                                     setDrill({ title, runs: [run] })
                                 }
@@ -179,14 +174,26 @@ export default function ExperimentView() {
     );
 }
 
-/** Aggregate case × metric matrix of means — the experiment-level summary. */
+/**
+ * Case × metric matrix of means (the experiment summary), where each case row
+ * expands in place to reveal its individual runs — so the aggregate and the raw
+ * runs live in one drillable table instead of two disconnected ones. All runs
+ * are already loaded, so expanding just filters client-side. Single-expand.
+ */
 function MeansMatrix({
     report,
-    onCaseClick,
+    runs,
+    metrics,
+    onRunClick,
 }: {
     report: ExperimentReport;
-    onCaseClick: (c: CaseRef) => void;
+    runs: Run[];
+    metrics: Metric[];
+    onRunClick: (run: Run, title: string) => void;
 }) {
+    const [openId, setOpenId] = useState<string | null>(null);
+    const colSpan = report.metrics.length + 2;
+
     return (
         <div className="overflow-x-auto">
             <Table>
@@ -207,55 +214,111 @@ function MeansMatrix({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {report.cases.map((row) => (
-                        <TableRow
-                            key={row.case.id}
-                            className="cursor-pointer"
-                            onClick={() => onCaseClick(row.case)}
-                        >
-                            <TableCell className="sticky left-0 bg-background font-medium">
-                                {row.case.name || row.case.key}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {row.runCount}
-                                {row.erroredCount > 0 && (
-                                    <span className="ml-1 text-red-600 dark:text-red-500">
-                                        ({row.erroredCount} err)
-                                    </span>
-                                )}
-                            </TableCell>
-                            {report.metrics.map((m) => {
-                                const cell = row.cells[m.key];
-                                if (!cell)
-                                    return (
-                                        <TableCell
-                                            key={m.key}
-                                            className="text-right text-muted-foreground"
-                                        >
-                                            —
-                                        </TableCell>
-                                    );
-                                return (
-                                    <TableCell
-                                        key={m.key}
-                                        className="text-right tabular-nums"
-                                        style={{
-                                            backgroundColor: scoreTint(
-                                                cell.mean,
-                                                m.kind,
-                                            ),
-                                        }}
-                                        title={`mean ${fmt(cell.mean)} · n=${cell.n} · σ=${cell.stddev == null ? "—" : fmt(cell.stddev)} · [${fmt(cell.min)}, ${fmt(cell.max)}]`}
-                                    >
-                                        {fmt(cell.mean)}
-                                        <span className="ml-1 text-xs text-muted-foreground">
-                                            (n={cell.n})
+                    {report.cases.map((row) => {
+                        // One run means nothing to expand into — a single-row
+                        // sub-table is just noise. Keep those rows flat.
+                        const expandable = row.runCount > 1;
+                        const open = expandable && openId === row.case.id;
+                        return (
+                            <Fragment key={row.case.id}>
+                                <TableRow
+                                    className={cn(expandable && "cursor-pointer")}
+                                    onClick={
+                                        expandable
+                                            ? () =>
+                                                  setOpenId(
+                                                      open ? null : row.case.id,
+                                                  )
+                                            : undefined
+                                    }
+                                >
+                                    <TableCell className="sticky left-0 bg-background font-medium">
+                                        <span className="flex items-center gap-1.5">
+                                            {expandable ? (
+                                                <ChevronRight
+                                                    className={cn(
+                                                        "size-4 shrink-0 text-muted-foreground transition-transform",
+                                                        open && "rotate-90",
+                                                    )}
+                                                />
+                                            ) : (
+                                                <span className="size-4 shrink-0" />
+                                            )}
+                                            <Link
+                                                to={`/cases/${row.case.id}`}
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                                className="hover:underline"
+                                            >
+                                                {row.case.name || row.case.key}
+                                            </Link>
                                         </span>
                                     </TableCell>
-                                );
-                            })}
-                        </TableRow>
-                    ))}
+                                    <TableCell className="text-right tabular-nums">
+                                        {row.runCount}
+                                        {row.erroredCount > 0 && (
+                                            <span className="ml-1 text-red-600 dark:text-red-500">
+                                                ({row.erroredCount} err)
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    {report.metrics.map((m) => {
+                                        const cell = row.cells[m.key];
+                                        if (!cell)
+                                            return (
+                                                <TableCell
+                                                    key={m.key}
+                                                    className="text-right text-muted-foreground"
+                                                >
+                                                    —
+                                                </TableCell>
+                                            );
+                                        return (
+                                            <TableCell
+                                                key={m.key}
+                                                className="text-right tabular-nums"
+                                                style={{
+                                                    backgroundColor: scoreTint(
+                                                        cell.mean,
+                                                        m.kind,
+                                                    ),
+                                                }}
+                                                title={`mean ${fmt(cell.mean)} · n=${cell.n} · σ=${cell.stddev == null ? "—" : fmt(cell.stddev)} · [${fmt(cell.min)}, ${fmt(cell.max)}]`}
+                                            >
+                                                {fmt(cell.mean)}
+                                                <span className="ml-1 text-xs text-muted-foreground">
+                                                    (n={cell.n})
+                                                </span>
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                                {open && (
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableCell
+                                            colSpan={colSpan}
+                                            className="bg-muted/30 p-0"
+                                        >
+                                            <div className="p-2 pl-8">
+                                                <RunsTable
+                                                    runs={runs.filter(
+                                                        (run) =>
+                                                            run.caseId ===
+                                                            row.case.id,
+                                                    )}
+                                                    metrics={metrics}
+                                                    cases={[row.case]}
+                                                    showCaseColumn={false}
+                                                    onRunClick={onRunClick}
+                                                />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </Fragment>
+                        );
+                    })}
                 </TableBody>
                 <TableFooter>
                     <TableRow>

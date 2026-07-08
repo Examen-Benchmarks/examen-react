@@ -52,19 +52,31 @@ function groupByCollection(results: ResultsResponse): CollectionGroup[] {
  * version's experiments by their collection breadcrumb. No client-side
  * aggregation — grades/counts come from the projection.
  */
-export function useBenchOverview(benchId: string) {
+export function useBenchOverview(benchId: string, attrs?: string | null) {
     const api = useApiClient();
 
+    // When a filter is active, narrow the version list via ?attrs= and key the
+    // query by it; with no filter the URL/key are unchanged, so the cache is
+    // shared with the comparison screen's unfiltered version list.
     const { objectQuery: versionsQ } = useGetResources<Version>({
-        url: `/versions?bench_id=${benchId}`,
+        url: attrs
+            ? `/versions?bench_id=${benchId}&attrs=${encodeURIComponent(attrs)}`
+            : `/versions?bench_id=${benchId}`,
         schema: VersionSchema,
-        keys: ["versions", "bench", benchId],
+        keys: attrs
+            ? ["versions", "bench", benchId, attrs]
+            : ["versions", "bench", benchId],
     });
     const versions = versionsQ.data ?? [];
     const recent = versions.slice(0, MAX_RECENT);
 
     const [picked, setPicked] = useState<string | null>(null);
-    const selectedVersionId = picked ?? recent[0]?.id ?? null;
+    // Fall back to the newest version when the picked one isn't in the (possibly
+    // filtered) list — e.g. a filter just hid it.
+    const selectedVersionId =
+        (picked && recent.some((v) => v.id === picked)
+            ? picked
+            : recent[0]?.id) ?? null;
 
     const resultsQs = useQueries({
         queries: recent.map((v) => ({
